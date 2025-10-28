@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask Demo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Hello Flask 👋</h1>
+        <p>Enter your name below:</p>
+
+        <form method="POST">
+            <input type="text" name="username" placeholder="Enter your name" required>
+            <button type="submit">Submit</button>
+        </form>
+
+        {% if user_input %}
+            <h2>Hello, {{ user_input }}!</h2>
+        {% endif %}
+    </div>
+</body>
+</html>
