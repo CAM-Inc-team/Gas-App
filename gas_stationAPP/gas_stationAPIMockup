@@ -12,7 +12,7 @@ def get_gas_prices():
     example_data = [
         {
             "name": "BP",
-            "address": "555 Main St, Ypsilanti, MI",
+            "address": "555 Main St,Ann Arbor, MI",
             "zip": zip_code,
             "prices": {
                 "regular": 3.59,
