@@ -1,0 +1,48 @@
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+
+@app.route('/v1/live', methods=['GET'])
+def get_gas_prices():
+    zip_code = request.args.get('zip')
+    if not zip_code:
+        return jsonify({"error": "Please provide a ZIP code"}), 400
+
+    # Placeholder data 
+    example_data = [
+        {
+            "name": "BP",
+            "address": "555 Main St, Ypsilanti, MI",
+            "zip": zip_code,
+            "prices": {
+                "regular": 3.59,
+                "midgrade": 3.89,
+                "premium": 4.19,
+                "diesel": 3.99
+            },
+            "updated_at": "2025-11-03T20:45:00Z",
+            "source": "mock-data"
+        },
+        {
+            "name": "Shell",
+            "address": "200 Washtenaw Ave, Ypsilanti, MI",
+            "zip": zip_code,
+            "prices": {
+                "regular": 3.55,
+                "midgrade": 3.85,
+                "premium": 4.10,
+                "diesel": 3.90
+            },
+            "updated_at": "2025-11-03T20:45:00Z",
+            "source": "mock-data"
+        }
+    ]
+
+    return jsonify({
+        "zip": zip_code,
+        "count": len(example_data),
+        "items": example_data
+    })
+
+if __name__ == '__main__':
+    app.run(debug=True)
