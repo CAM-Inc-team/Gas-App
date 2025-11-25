@@ -13,5 +13,37 @@
         "**/Thumbs.db": true,
         "**/.rmv/catalog/**": true,
         "*/_*": false
-    }
+    },
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "0vm87g.h.filess.io",
+            "port": 3305,
+            "driver": "MariaDB",
+            "name": "TestDB_honorturn",
+            "database": "TestDB_honorturn",
+            "username": "TestDB_honorturn",
+            "askForPassword": true
+        },
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "gsommers",
+            "database": "gsommers",
+            "username": "gsommers",
+            "askForPassword": true
+        }
+    ]
 }
