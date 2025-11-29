@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GasApp</title>
+
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+<ul>
+  <div class="appName"> GasApp</div>
+  <li><a href="#home">Home</a></li>
+  <li><a href="#about">About Us</a></li>
+  <li><a href="#donate">Donate</a></li>
+</ul>
+
+<form action="{{ url_for('search') }}" method="post">
+  <div class="search-bar-prices">
+    <div class="rectangle"></div>
+    <div class="search-text">Search</div>
+
+    <div class="input-field">
+      <div class="label">Enter Location</div>
+      <input
+        class="location-input"
+        placeholder="Street Address, City, or Zip Code"
+        type="text"
+        name="location"
+        value="{{ search_params.location if search_params else '' }}"
+        required
+      />
+    </div>
+
+    <div class="select-field">
+      <label class="label" for="distance">Select Distance</label>
+      <select id="distance" name="distance" class="select-style">
+        {% set d = search_params.distance if search_params else 10 %}
+        <option value="10" {% if d = 10 or d = '10' %}selected{% endif %}>Any (10 mi)</option>
+        <option value="5"  {% if d = 5 or d = '5' %}selected{% endif %}>5 mi</option>
+        <option value="10" {% if d = 10 or d = '10' %}selected{% endif %}>10 mi</option>
+        <option value="20" {% if d = 20 or d = '20' %}selected{% endif %}>20 mi</option>
+      </select>
+    </div>
+
+    <div class="select-field">
+      <label class="label" for="fuel-type">Select Fuel Type</label>
+      <select id="fuel-type" name="fuel_type" class="select-style">
+        {% set f = search_params.fuel_type if search_params else 'any' %}
+        <option value="any"     {% if f = 'any'     %}selected{% endif %}>Any</option>
+        <option value="regular" {% if f = 'regular' %}selected{% endif %}>Regular</option>
+        <option value="midgrade" {% if f = 'midgrade' %}selected{% endif %}>Midgrade</option>
+        <option value="premium" {% if f = 'premium' %}selected{% endif %}>Premium</option>
+        <option value="diesel"  {% if f = 'diesel'  %}selected{% endif %}>Diesel</option>
+      </select>
+    </div>
+
+    <div class="select-field">
+      <label class="label" for="brand">Select Brand</label>
+      <select id="brand" name="brand" class="select-style">
+        {% set b = search_params.brand if search_params else 'any' %}
+        <option value="any"      {% if b = 'any'      %}selected{% endif %}>Any</option>
+        <option value="speedway" {% if b = 'speedway' %}selected{% endif %}>Speedway</option>
+        <option value="costco"   {% if b = 'costco'   %}selected{% endif %}>Costco</option>
+        <option value="meijer"   {% if b = 'meijer'   %}selected{% endif %}>Meijer</option>
+      </select>
+    </div>
+
+    <div class="min-max">
+      <div class="label">Price</div>
+      <div class="container">
+        <input
+          type="text"
+          name="price_min"
+          placeholder="MIN"
+          class="small-input"
+          value="{{ search_params.price_min if search_params else '' }}"
+        >
+        <div class="text-wrapper-2">-</div>
+        <input
+          type="text"
+          name="price_max"
+          placeholder="MAX"
+          class="small-input"
+          value="{{ search_params.price_max if search_params else '' }}"
+        >
+      </div>
+    </div>
+
+    <button type="submit" class="button">Submit</button>
+  </div>
+</form>
+
+<div class="gas-container">
+  {% if stations %}
+    {% for s in stations %}
+      <div class="gas-display-large">
+        <div class="rectangle"></div>
+        <div class="div"></div>
+
+        <div class="price">
+          {% if s.price is not none %}
+            ${{ '%.3g'|format(s.price) }}
+          {% else %}
+            --
+          {% endif %}
+        </div>
+
+        <div class="station">{{ s.brand or s.name or 'Unknown' }}</div>
+
+        <div class="distance">
+          {% if s.distance_miles is not none %}
+            {{ '%.2f'|format(s.distance_miles) }}
+          {% else %}
+            --
+          {% endif %}
+        </div>
+
+        <div class="miles-text">Miles away</div>
+
+        <p class="address">
+          {{ s.address or 'Address not provided' }}<br />
+          {% if s.lat and s.lng %}
+            <a href="https://www.google.com/maps/dir/?api=1&destination={{ s.lat }},{{ s.lng }}" target="_blank">Directions</a>
+          {% endif %}
+        </p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div style="width:100%; padding: 180px 0 60px 660px; color:#666;">
+      No stations to show. Submit a search to see nearby stations.
+    </div>
+  {% endif %}
+</div>
+
+</body>
+</html>
