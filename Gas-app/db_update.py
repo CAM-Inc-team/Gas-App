@@ -10,7 +10,7 @@ load_dotenv()
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "127.0.0.1"),
     "user": os.getenv("DB_USER", "gsommers"),
-    "password": os.getenv("DB_PASS", "GiltMuka14Dragon"),
+    "password": os.getenv("DB_PASS", "test123"),
     "database": os.getenv("DB_NAME", "cps298_gas_app"),
     "port": int(os.getenv("DB_PORT", 3306)),
 }

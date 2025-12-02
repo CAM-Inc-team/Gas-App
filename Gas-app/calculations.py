@@ -2,9 +2,9 @@ from typing import List, Dict, Optional, Tuple
 from math import radians, sin, cos, asin, sqrt
 from urllib.parse import quote_plus
 from storage import Storage
-import requests
 import os
 from dotenv import load_dotenv
+import requests
 
 load_dotenv()
 
@@ -14,26 +14,57 @@ class GasStationCalculator:
         self.geocoding_api_key = os.getenv("GOOGLE_MAPS_API_KEY")
         if not self.geocoding_api_key:
             print("Warning: GOOGLE_MAPS_API_KEY not found in environment variables")
+        self.cached_station_coords = None
 
     def geocode_address(self, address: str) -> Optional[Tuple[float, float]]:
-        """Convert address/zip to lat/lng using Google Geocoding API."""
+        """
+        Convert address/zip to lat/lng using OpenStreetMap Nominatim.
+        Includes rate limiting and improved error handling.
+        """
+        import time
+        from random import uniform
+        
+        # Rate limiting - be nice to the Nominatim server
+        time.sleep(1 + uniform(0, 1))  # 1-2 second delay between requests
+        
         try:
-            url = "https://maps.googleapis.com/maps/api/geocode/json"
+            url = "https://nominatim.openstreetmap.org/search"
             params = {
-                "address": address,
-                "key": self.geocoding_api_key
+                "q": address,
+                "format": "json",
+                "limit": 1,
+                "countrycodes": "us",  # Limit to US for better results
+                "addressdetails": 1     # Get more detailed address info
             }
-            response = requests.get(url, params=params)
-            data = response.json()
+            headers = {
+                "User-Agent": "GasApp/1.0 (https://github.com/yourusername/gas-app; your.email@example.com)",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Referer": "https://your-website.com"  # Replace with your actual website
+            }
             
-            if data["status"] == "OK":
-                location = data["results"][0]["geometry"]["location"]
-                return location["lat"], location["lng"]
-            print(f"Geocoding error: {data.get('error_message', 'Unknown error')}")
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            response.raise_for_status()  # Raise exception for bad status codes
+            
+            data = response.json()
+            if data and len(data) > 0:
+                return float(data[0]["lat"]), float(data[0]["lon"])
+            
+            print(f"Geocoding: No results found for address: {address}")
             return None
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Geocoding error (network): {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"Status code: {e.response.status_code}")
+                print(f"Response: {e.response.text[:200]}...")
+        except (ValueError, KeyError, IndexError) as e:
+            print(f"Geocoding error (parsing): {e}")
+            if 'data' in locals():
+                print(f"Response data: {data}")
         except Exception as e:
-            print(f"Geocoding error: {e}")
-            return None
+            print(f"Unexpected geocoding error: {e}")
+        
+        return None
 
     def haversine_distance(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
         """Calculate the great circle distance between two points on the earth."""
@@ -47,97 +78,138 @@ class GasStationCalculator:
         c = 2 * asin(sqrt(a)) 
         r = 3956  # Radius of earth in miles
         return c * r
-
-    def build_maps_url(self, address1: str, city: str, state: str, zipcode: str) -> str:
-        """Build Google Maps URL for a station."""
-        query = f"{address1} {city} {state} {zipcode}"
-        return f"https://www.google.com/maps/search/?api=1&query={quote_plus(query)}"
-
-    def find_best_stations(
-        self,
-        location: str,
-        radius_miles: float,
-        fuel_type: str = "any",
-        brand: str = "any",
-        price_min: Optional[float] = None,
-        price_max: Optional[float] = None,
-        lat: Optional[float] = None,
-        lng: Optional[float] = None
-    ) -> Tuple[List[Dict], Dict]:
-        """
-        Find the best gas stations based on the given criteria.
         
+    def get_stations_in_radius(self, user_lat: float, user_lng: float, radius_miles: float) -> List[Dict]:
+        """Get all stations within the specified radius of the user's location."""
+        if self.cached_station_coords is None:
+            self.cached_station_coords = self.storage.get_all_station_coordinates()
+            
+        stations_in_radius = []
+        
+        for station in self.cached_station_coords:
+            try:
+                distance = self.haversine_distance(
+                    user_lat, user_lng,
+                    float(station['lat']), float(station['lng'])
+                )
+                if distance <= radius_miles:
+                    stations_in_radius.append({
+                        'id': station['id'],
+                        'distance': distance
+                    })
+            except (ValueError, TypeError):
+                continue
+                
+        return stations_in_radius
+        
+    def find_best_stations(self, location: str, radius_miles: float = 10, 
+                          fuel_type: str = 'any', brand: str = 'any',
+                          price_min: float = None, price_max: float = None,
+                          lat: float = None, lng: float = None) -> tuple[list[dict], dict]:
+        """
+        Find the best gas stations based on user criteria.
+        
+        Args:
+            location: User's location as address, city, or zip code
+            radius_miles: Search radius in miles
+            fuel_type: Type of fuel (regular, midgrade, premium, diesel, or 'any')
+            brand: Specific brand to filter by, or 'any'
+            price_min: Minimum price filter
+            price_max: Maximum price filter
+            lat: Optional latitude (if already geocoded)
+            lng: Optional longitude (if already geocoded)
+            
         Returns:
-            Tuple of (list of station dicts, search metadata)
+            Tuple of (list of matching stations, search metadata)
         """
-        # Geocode the location if lat/lng not provided
+        # Get user's coordinates if not provided
         if lat is None or lng is None:
-            geocoded = self.geocode_address(location)
-            if not geocoded:
-                return [], {"error": "Could not find the specified location"}
-            lat, lng = geocoded
-
-        # Get stations from database within radius
-        stations = self.storage.get_stations_in_radius(lat, lng, radius_miles)
+            coords = self.geocode_address(location)
+            if not coords:
+                return [], {'error': 'Could not geocode the provided location'}
+            lat, lng = coords
         
-        # Filter and process stations
+        # Find stations within radius
+        stations_in_radius = self.get_stations_in_radius(lat, lng, radius_miles)
+        
+        if not stations_in_radius:
+            return [], {'message': 'No stations found in the specified radius'}
+            
+        # Get station IDs within radius
+        station_ids = [s['id'] for s in stations_in_radius]
+        
+        # Get detailed station info with additional filters
+        stations = self.storage.get_stations_by_ids(
+            station_ids=station_ids,
+            fuel_type=fuel_type,
+            brand=brand,
+            price_min=price_min,
+            price_max=price_max
+        )
+        
+        # Add distance information to each station
+        station_distances = {s['id']: s['distance'] for s in stations_in_radius}
         results = []
+        
         for station in stations:
+            station_id = station['id']
+            distance = round(station_distances.get(station_id, float('inf')), 2)
+            
             # Get price for the selected fuel type
             price = self._get_fuel_price(station, fuel_type)
             if price is None:
                 continue
-
-            # Apply filters
-            if brand != "any" and station.get('brand', '').lower() != brand.lower():
-                continue
-            if price_min is not None and price < price_min:
-                continue
-            if price_max is not None and price > price_max:
-                continue
-
-            # Calculate distance if not already calculated by SQL
-            distance = station.get('distance_miles') or self.haversine_distance(
-                lat, lng, station['lat'], station['lng']
-            )
-
-            # Build result dict
+                
+            # Build result dict with all necessary information
             result = {
-                'id': station['id'],
-                'name': station['name'],
-                'brand': station['brand'],
-                'address1': station['address1'],
-                'city': station['city'],
-                'state': station['state'],
-                'zipcode': station['zipcode'],
+                'id': station_id,
+                'name': station.get('name', ''),
+                'brand': station.get('brand', ''),
+                'address1': station.get('address1', ''),
+                'city': station.get('city', ''),
+                'state': station.get('state', ''),
+                'zipcode': station.get('zipcode', ''),
+                'lat': station.get('lat'),
+                'lng': station.get('lng'),
                 'price': price,
                 'fuel_type': fuel_type if fuel_type != 'any' else 'regular',
-                'distance_miles': round(distance, 2),
+                'distance_miles': distance,
                 'maps_url': self.build_maps_url(
-                    station['address1'],
-                    station['city'],
-                    station['state'],
-                    station['zipcode']
-                )
+                    station.get('address1', ''),
+                    station.get('city', ''),
+                    station.get('state', ''),
+                    station.get('zipcode', '')
+                ),
+                'price_regular': station.get('priceRegular'),
+                'price_midgrade': station.get('priceMidGrade'),
+                'price_premium': station.get('pricePremium'),
+                'price_diesel': station.get('priceDiesel'),
+                'date_recorded': station.get('date_recorded')
             }
             results.append(result)
-
-        # Sort by price, then distance
-        results.sort(key=lambda x: (x['price'], x['distance_miles']))
-
+        
+        # Sort by distance (closest first)
+        results.sort(key=lambda x: x['distance_miles'])
+        
         # Prepare search metadata
         search_meta = {
-            'center': {'lat': lat, 'lng': lng},
             'location': location,
+            'lat': lat,
+            'lng': lng,
             'radius_miles': radius_miles,
             'fuel_type': fuel_type,
             'brand': brand,
             'price_min': price_min,
             'price_max': price_max,
-            'result_count': len(results)
+            'total_results': len(results)
         }
-
+        
         return results, search_meta
+
+    def build_maps_url(self, address1: str, city: str, state: str, zipcode: str) -> str:
+        """Build Google Maps URL for a station."""
+        query = f"{address1} {city} {state} {zipcode}"
+        return f"https://www.google.com/maps/search/?api=1&query={quote_plus(query)}"
 
     def _get_fuel_price(self, station: Dict, fuel_type: str) -> Optional[float]:
         """Get the price for the specified fuel type from a station record."""
@@ -148,7 +220,7 @@ class GasStationCalculator:
             'diesel': 'priceDiesel'
         }
 
-        if fuel_type == 'any':
+        if fuel_type.lower() == 'any':
             # Find the lowest available price
             min_price = None
             for col in fuel_columns.values():

@@ -6,7 +6,7 @@
   <title>GasApp</title>
 
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
@@ -38,10 +38,10 @@
       <label class="label" for="distance">Select Distance</label>
       <select id="distance" name="distance" class="select-style">
         {% set d = search_params.distance if search_params else 10 %}
-        <option value="10" {% if d = 10 or d = '10' %}selected{% endif %}>Any (10 mi)</option>
-        <option value="5"  {% if d = 5 or d = '5' %}selected{% endif %}>5 mi</option>
-        <option value="10" {% if d = 10 or d = '10' %}selected{% endif %}>10 mi</option>
-        <option value="20" {% if d = 20 or d = '20' %}selected{% endif %}>20 mi</option>
+        <option value="10" {% if d == 10 or d == '10' %}selected{% endif %}>Any (10 mi)</option>
+        <option value="5"  {% if d == 5 or d == '5' %}selected{% endif %}>5 mi</option>
+        <option value="10" {% if d == 10 or d == '10' %}selected{% endif %}>10 mi</option>
+        <option value="20" {% if d == 20 or d == '20' %}selected{% endif %}>20 mi</option>
       </select>
     </div>
 
@@ -49,11 +49,11 @@
       <label class="label" for="fuel-type">Select Fuel Type</label>
       <select id="fuel-type" name="fuel_type" class="select-style">
         {% set f = search_params.fuel_type if search_params else 'any' %}
-        <option value="any"     {% if f = 'any'     %}selected{% endif %}>Any</option>
-        <option value="regular" {% if f = 'regular' %}selected{% endif %}>Regular</option>
-        <option value="midgrade" {% if f = 'midgrade' %}selected{% endif %}>Midgrade</option>
-        <option value="premium" {% if f = 'premium' %}selected{% endif %}>Premium</option>
-        <option value="diesel"  {% if f = 'diesel'  %}selected{% endif %}>Diesel</option>
+        <option value="any"     {% if f == 'any'     %}selected{% endif %}>Any</option>
+        <option value="regular" {% if f == 'regular' %}selected{% endif %}>Regular</option>
+        <option value="midgrade" {% if f == 'midgrade' %}selected{% endif %}>Midgrade</option>
+        <option value="premium" {% if f == 'premium' %}selected{% endif %}>Premium</option>
+        <option value="diesel"  {% if f == 'diesel'  %}selected{% endif %}>Diesel</option>
       </select>
     </div>
 
@@ -61,10 +61,22 @@
       <label class="label" for="brand">Select Brand</label>
       <select id="brand" name="brand" class="select-style">
         {% set b = search_params.brand if search_params else 'any' %}
-        <option value="any"      {% if b = 'any'      %}selected{% endif %}>Any</option>
-        <option value="speedway" {% if b = 'speedway' %}selected{% endif %}>Speedway</option>
-        <option value="costco"   {% if b = 'costco'   %}selected{% endif %}>Costco</option>
-        <option value="meijer"   {% if b = 'meijer'   %}selected{% endif %}>Meijer</option>
+        <option value="any"     {% if b == 'any'     %}selected{% endif %}>Any Brand</option>
+        <option value="amoco"   {% if b == 'amoco'   %}selected{% endif %}>Amoco</option>
+        <option value="bp"      {% if b == 'bp'      %}selected{% endif %}>BP</option>
+        <option value="circleK" {% if b == 'circleK' %}selected{% endif %}>Circle K</option>
+        <option value="citgo"   {% if b == 'citgo'   %}selected{% endif %}>Citgo</option>
+        <option value="costco"  {% if b == 'costco'  %}selected{% endif %}>Costco</option>
+        <option value="exxon"   {% if b == 'exxon'   %}selected{% endif %}>Exxon</option>
+        <option value="kroger"  {% if b == 'kroger'  %}selected{% endif %}>Kroger</option>
+        <option value="marathon"{% if b == 'marathon'%}selected{% endif %}>Marathon</option>
+        <option value="meijer"  {% if b == 'meijer'  %}selected{% endif %}>Meijer</option>
+        <option value="misc"    {% if b == 'misc'    %}selected{% endif %}>Miscellaneous</option>
+        <option value="mobil"   {% if b == 'mobil'   %}selected{% endif %}>Mobil</option>
+        <option value="pilot"   {% if b == 'pilot'   %}selected{% endif %}>Pilot</option>
+        <option value="shell"   {% if b == 'shell'   %}selected{% endif %}>Shell</option>
+        <option value="speedway"{% if b == 'speedway'%}selected{% endif %}>Speedway</option>
+        <option value="sunoco"  {% if b == 'sunoco'  %}selected{% endif %}>Sunoco</option>
       </select>
     </div>
 
@@ -121,16 +133,23 @@
         <div class="miles-text">Miles away</div>
 
         <p class="address">
-          {{ s.address or 'Address not provided' }}<br />
+          {{ s.address1 or 'Address not provided' }}
+          {% if s.city and s.state %}
+            <br>{{ s.city }}, {{ s.state }} {{ s.zipcode }}
+          {% endif %}
           {% if s.lat and s.lng %}
-            <a href="https://www.google.com/maps/dir/?api=1&destination={{ s.lat }},{{ s.lng }}" target="_blank">Directions</a>
+            <br><a href="https://www.google.com/maps/dir/?api=1&destination={{ s.lat }},{{ s.lng }}" target="_blank">Directions</a>
           {% endif %}
         </p>
       </div>
     {% endfor %}
   {% else %}
     <div style="width:100%; padding: 180px 0 60px 660px; color:#666;">
-      No stations to show. Submit a search to see nearby stations.
+      {% if request.method == 'POST' %}
+        No gas stations found matching your criteria. Try expanding your search area.
+      {% else %}
+        Enter a location and click "Submit" to find nearby gas stations.
+      {% endif %}
     </div>
   {% endif %}
 </div>
