@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Donate2</title>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+<ul>
+  <div class="appName">GasApp</div>
+  <li><a href="index.html">Home</a></li>
+  <li><a href="about.html">About Us</a></li>
+  <li><a href="donate1.html">Donate</a></li>
+</ul>
+
+<form action="" method="post">
+  <div class="donateFormContainer">
+
+    <div class="input-field">
+      <div class="label">Name On Card</div>
+      <input class="donate-input" name="card_name" placeholder="Full Name" type="text" required />
+    </div>
+
+    <div class="input-field">
+      <div class="label">Card Number</div>
+      <input class="donate-input" name="card_number" placeholder="Card Number" type="text" required />
+    </div>
+
+    <div class="input-field">
+      <div class="label">Email</div>
+      <input class="donate-input" name="email" placeholder="Email" type="email" required />
+    </div>
+
+    <div class="input-field">
+      <div class="label">CVV Number</div>
+      <input class="donate-input" name="cvv" placeholder="CVV Number" type="text" required />
+    </div>
+
+    <div class="expiration">
+      <div class="label">Expiration</div>
+
+      <div class="expirationContainer">
+        <select id="month" name="month" class="select-style">
+          <option value="01">01</option>
+          <option value="02">02</option>
+          <option value="03">03</option>
+          <option value="04">04</option>
+          <option value="05">05</option>
+          <option value="06">06</option>
+          <option value="07">07</option>
+          <option value="08">08</option>
+          <option value="09">09</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+        </select>
+
+        <select id="year" name="year" class="select-style">
+          <option value="2025">2025</option>
+          <option value="2026">2026</option>
+          <option value="2027">2027</option>
+          <option value="2028">2028</option>
+          <option value="2029">2029</option>
+          <option value="2030">2030</option>
+        </select>
+      </div>
+    </div>
+
+    <button type="submit" class="donateButton">Submit</button>
+
+  </div>
+</form>
+
+</body>
+</html>

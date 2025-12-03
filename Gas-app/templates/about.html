@@ -1,11 +1,35 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>About Us</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>About</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    
+
+<ul>
+  <div class="appName">GasApp</div>
+  <li><a href="{{ url_for('index') }}">Home</a></li>
+  <li><a href="{{ url_for('index') }}#about">About Us</a></li>
+  <li><a href="{{ url_for('index') }}#donate">Donate</a></li>
+</ul>
+
+<div class="aboutContainer" role="region" aria-labelledby="about-heading">
+  <div class="aboutLabel">
+    <h1 id="about-heading">About C.A.M. Industries</h1>
+  </div>
+
+  <div class="aboutText">
+    <p>
+      Founded in 2025, C.A.M. Industries has quickly become a market leader in the digital space, creating and innovating new experiences for users around the world. 
+      Partnering with some of the leading technology firms has made this company Fortune 500’s most desired investments, despite our small team of around five people. 
+      This company is dedicated to providing its users with the best experience we can, cornering every market and being a part of our user’s everyday life. 
+      One mileage at a time.
+    </p>
+  </div>
+</div>
+
 </body>
 </html>
