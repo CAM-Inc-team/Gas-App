@@ -11,10 +11,14 @@
 <body>
 
 <ul>
-  <div class="appName"> GasApp</div>
-  <li><a href="#home">Home</a></li>
-  <li><a href="#about">About Us</a></li>
-  <li><a href="#donate">Donate</a></li>
+  <li class="logo-container">
+    <a href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='images/Gas App Logo.png') }}" alt="GasApp Logo" class="logo-image">
+    </a>
+  </li>
+  <li><a href="{{ url_for('index') }}">Home</a></li>
+  <li><a href="{{ url_for('about') }}">About Us</a></li>
+  <li><a href="{{ url_for('donate1') }}">Donate</a></li>
 </ul>
 
 <form action="{{ url_for('search') }}" method="post">
@@ -26,7 +30,7 @@
       <div class="label">Enter Location</div>
       <input
         class="location-input"
-        placeholder="Street Address, City, or Zip Code"
+        placeholder="Please enter ZipCode"
         type="text"
         name="location"
         value="{{ search_params.location if search_params else '' }}"

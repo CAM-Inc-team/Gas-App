@@ -5,15 +5,19 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>About</title>
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
 <ul>
-  <div class="appName">GasApp</div>
+  <li class="logo-container">
+    <a href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='images/Gas App Logo.png') }}" alt="GasApp Logo" class="logo-image">
+    </a>
+  </li>
   <li><a href="{{ url_for('index') }}">Home</a></li>
-  <li><a href="{{ url_for('index') }}#about">About Us</a></li>
-  <li><a href="{{ url_for('index') }}#donate">Donate</a></li>
+  <li><a href="{{ url_for('about') }}">About Us</a></li>
+  <li><a href="{{ url_for('donate1') }}">Donate</a></li>
 </ul>
 
 <div class="aboutContainer" role="region" aria-labelledby="about-heading">

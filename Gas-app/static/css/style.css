@@ -20,13 +20,24 @@ ul {
   opacity: 1;
   z-index: 1000;
 }
-.appName {
-  display: block;
-  color: #FED0BB;
-  text-align: center;
-  padding: 14px 16px;
+/* Logo container styles */
+.logo-container {
   margin-right: auto;
-  cursor: default;
+  padding: 5px 16px;
+  display: flex;
+  align-items: center;
+}
+
+/* Logo image styles */
+.logo-image {
+  height: 40px; /* Adjust height as needed */
+  width: auto; /* Maintain aspect ratio */
+  max-width: 120px; /* Prevent the logo from being too wide */
+  transition: opacity 0.3s ease;
+}
+
+.logo-image:hover {
+  opacity: 0.9;
 }
 .logo{
   display: block;

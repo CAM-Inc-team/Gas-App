@@ -5,19 +5,23 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Donate2</title>
 
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
 
 <ul>
-  <div class="appName">GasApp</div>
-  <li><a href="index.html">Home</a></li>
-  <li><a href="about.html">About Us</a></li>
-  <li><a href="donate1.html">Donate</a></li>
+  <li class="logo-container">
+    <a href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='images/Gas App Logo.png') }}" alt="GasApp Logo" class="logo-image">
+    </a>
+  </li>
+  <li><a href="{{ url_for('index') }}">Home</a></li>
+  <li><a href="{{ url_for('about') }}">About Us</a></li>
+  <li><a href="{{ url_for('donate1') }}">Donate</a></li>
 </ul>
 
-<form action="" method="post">
+<form action="{{ url_for('process_donation') }}" method="post">
   <div class="donateFormContainer">
 
     <div class="input-field">

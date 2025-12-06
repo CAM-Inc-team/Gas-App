@@ -43,26 +43,38 @@ class Storage:
             return []
 
         try:
-            query = """
-            SELECT 
-                c.id as station_id, 
-                c.latitude as lat, 
-                c.longitude as lng
-            FROM coordinates c
-            WHERE c.latitude IS NOT NULL 
-              AND c.longitude IS NOT NULL
-            """
-            self.cursor.execute(query)
-            return self.cursor.fetchall()
+            
+            
+            
+            try:
+                print("Using Coordinates table.")
+                query = """
+                SELECT 
+                    id as station_id,
+                    latitude as lat,
+                    longitude as lng
+                FROM coordinates
+                WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+                """
+                self.cursor.execute(query)
+                result = self.cursor.fetchall()
+                if result:
+                    return result
+            except Exception as e:
+                print(f"Warning: Could not fetch from coordinates table: {e}")
+            
+            # If we get here, we couldn't get coordinates from either table
+            # Return an empty list to avoid returning stations with (0,0) coordinates
+            print("Error: Could not retrieve coordinates for any stations")
+            return []
+            
         except Exception as e:
-            print(f"Error fetching station coordinates: {e}")
+            print(f"Error in get_all_station_coordinates: {e}")
             return []
         finally:
             self.close()
 
-    def get_stations_by_ids(self, station_ids: List[int], fuel_type: str = 'any', 
-                          brand: str = 'any', price_min: float = None, 
-                          price_max: float = None) -> List[Dict]:
+    def get_stations_by_ids(self, station_ids, fuel_type='any', brand='any', price_min=None, price_max=None):
         """
         Fetch stations by their IDs with optional filters.
         Returns a list of station dictionaries with all available fields.
@@ -71,55 +83,58 @@ class Storage:
             return []
 
         try:
-            # Build the query with placeholders for station IDs
-            placeholders = ', '.join(['%s'] * len(station_ids))
+            # Map fuel types to database column names
+            fuel_columns = {
+                'regular': 's.priceRegular',
+                'midgrade': 's.priceMidGrade',
+                'premium': 's.pricePremium',
+                'diesel': 's.priceDiesel'
+            }
             
-            # Base query to get station data with coordinates
-            query = f"""
+            # Build the query to join gas_stations with coordinates
+            query = """
             SELECT 
-                gs.station_id,
-                gs.name,
-                gs.brand,
-                gs.address1,
-                gs.city,
-                gs.state,
-                gs.zipcode,
+                s.*,
                 c.latitude as lat,
-                c.longitude as lng,
-                gs.priceRegular,
-                gs.priceMidGrade,
-                gs.pricePremium,
-                gs.priceDiesel,
-                gs.date_recorded
-            FROM gas_stations gs
-            JOIN coordinates c ON gs.station_id = c.id
-            WHERE gs.station_id IN ({placeholders})
-            """
+                c.longitude as lng
+            FROM gas_stations s
+            LEFT JOIN coordinates c ON s.station_id = c.id
+            WHERE s.station_id IN ({})
+            """.format(','.join(['%s'] * len(station_ids)))
             
-            # Add filters
             params = list(station_ids)
             
-            # Apply brand filter
-            if brand.lower() != 'any':
-                query += " AND LOWER(gs.brand) = LOWER(%s)"
+            # Add fuel type filter
+            price_column = None
+            if fuel_type != 'any':
+                price_column = fuel_columns.get(fuel_type, 's.priceRegular')
+                query += f" AND {price_column} IS NOT NULL"
+            
+            # Add brand filter
+            if brand != 'any':
+                query += " AND s.brand = %s"
                 params.append(brand)
             
-            # Apply fuel type and price filters
-            if fuel_type.lower() != 'any':
-                price_column = f"gs.price{fuel_type.capitalize()}"
-                query += f" AND {price_column} IS NOT NULL"
+            # Add price range filters
+            if price_min is not None and price_column:
+                query += f" AND {price_column} >= %s"
+                params.append(price_min)
                 
-                if price_min is not None:
-                    query += f" AND {price_column} >= %s"
-                    params.append(price_min)
-                    
-                if price_max is not None:
-                    query += f" AND {price_column} <= %s"
-                    params.append(price_max)
+            if price_max is not None and price_column:
+                query += f" AND {price_column} <= %s"
+                params.append(price_max)
             
+            # Execute the query
             self.cursor.execute(query, params)
-            return self.cursor.fetchall()
+            results = self.cursor.fetchall()
             
+            # Ensure all results have lat/lng, even if NULL
+            for result in results:
+                result.setdefault('lat', None)
+                result.setdefault('lng', None)
+                
+            return results
+                
         except Exception as e:
             print(f"Error fetching stations by IDs: {e}")
             import traceback

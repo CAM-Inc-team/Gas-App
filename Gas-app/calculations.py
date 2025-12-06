@@ -11,52 +11,76 @@ load_dotenv()
 class GasStationCalculator:
     def __init__(self):
         self.storage = Storage()
-        self.geocoding_api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+        # Ensure environment variables are loaded
+        load_dotenv(override=True)
+        self.geocoding_api_key = os.getenv("GEOCODE_MAPS_API_KEY")
         if not self.geocoding_api_key:
-            print("Warning: GOOGLE_MAPS_API_KEY not found in environment variables")
+            print("Error: GEOCODE_MAPS_API_KEY not found in environment variables")
+            print("Please check your .env file and make sure it's in the correct location.")
+            print("You can get a free API key at https://geocode.maps.co/")
+        else:
+            print("Geocoding API key loaded successfully")
         self.cached_station_coords = None
 
     def geocode_address(self, address: str) -> Optional[Tuple[float, float]]:
         """
-        Convert address/zip to lat/lng using OpenStreetMap Nominatim.
-        Includes rate limiting and improved error handling.
+        Convert address/zip to lat/lng using geocode.maps.co API.
+        Handles various address formats including partial addresses.
         """
-        import time
-        from random import uniform
-        
-        # Rate limiting - be nice to the Nominatim server
-        time.sleep(1 + uniform(0, 1))  # 1-2 second delay between requests
-        
+        if not address or not address.strip():
+            print("Error: Empty address provided")
+            return None
+
         try:
-            url = "https://nominatim.openstreetmap.org/search"
+            # Clean and format the address
+            address = address.strip()
+            print(f"Geocoding address: '{address}'")
+            
+            # Check if we have a valid API key
+            if not self.geocoding_api_key or self.geocoding_api_key == "your_api_key_here":
+                print("Error: Invalid or missing geocoding API key")
+                return None
+
+            url = "https://geocode.maps.co/search"
             params = {
                 "q": address,
-                "format": "json",
-                "limit": 1,
+                "api_key": self.geocoding_api_key,
                 "countrycodes": "us",  # Limit to US for better results
-                "addressdetails": 1     # Get more detailed address info
-            }
-            headers = {
-                "User-Agent": "GasApp/1.0 (https://github.com/yourusername/gas-app; your.email@example.com)",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Referer": "https://your-website.com"  # Replace with your actual website
+                "limit": 5  # Get more results to improve matching
             }
             
-            response = requests.get(url, params=params, headers=headers, timeout=10)
-            response.raise_for_status()  # Raise exception for bad status codes
+            headers = {
+                "User-Agent": "GasApp/1.0",
+                "Accept": "application/json"
+            }
+            
+            print(f"Making request to geocoding API with params: {params}")
+            response = requests.get(url, params=params, headers=headers, timeout=15)
+            response.raise_for_status()
             
             data = response.json()
+            print(f"Geocoding API response: {data}")
+            
             if data and len(data) > 0:
-                return float(data[0]["lat"]), float(data[0]["lon"])
-            
-            print(f"Geocoding: No results found for address: {address}")
-            return None
-            
+                # Try to find the best match
+                for result in data:
+                    lat = result.get("lat")
+                    lon = result.get("lon")
+                    if lat is not None and lon is not None:
+                        print(f"Found coordinates: ({lat}, {lon})")
+                        return float(lat), float(lon)
+                
+                print("Error: No valid coordinates found in response")
+                print(f"Response data: {data[0]}")
+            else:
+                print(f"No results found for address: {address}")
+                return None
+                
         except requests.exceptions.RequestException as e:
             print(f"Geocoding error (network): {e}")
             if hasattr(e, 'response') and e.response is not None:
                 print(f"Status code: {e.response.status_code}")
-                print(f"Response: {e.response.text[:200]}...")
+                print(f"Response: {e.response.text[:200]}")
         except (ValueError, KeyError, IndexError) as e:
             print(f"Geocoding error (parsing): {e}")
             if 'data' in locals():
@@ -94,7 +118,7 @@ class GasStationCalculator:
                 )
                 if distance <= radius_miles:
                     stations_in_radius.append({
-                        'id': station['id'],
+                        'id': station['station_id'],  
                         'distance': distance
                     })
             except (ValueError, TypeError):
@@ -152,7 +176,7 @@ class GasStationCalculator:
         results = []
         
         for station in stations:
-            station_id = station['id']
+            station_id = station['station_id']  # Changed from 'id' to 'station_id'
             distance = round(station_distances.get(station_id, float('inf')), 2)
             
             # Get price for the selected fuel type
@@ -162,7 +186,8 @@ class GasStationCalculator:
                 
             # Build result dict with all necessary information
             result = {
-                'id': station_id,
+                'id': station_id,  # Keep 'id' here as it's used in the template
+                'station_id': station_id,  # Add station_id for reference
                 'name': station.get('name', ''),
                 'brand': station.get('brand', ''),
                 'address1': station.get('address1', ''),
